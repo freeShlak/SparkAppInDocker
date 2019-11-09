@@ -1,24 +1,16 @@
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import scala.Tuple2;
-
-import java.util.Arrays;
 
 public class Main {
     public static void main(String[] args) {
-        /*SparkConf conf = new SparkConf().setAppName("Tsibenko test application.");
+        String sparkMasterUrl = System.getenv("SPARK_MASTER_URL");
 
-        try (JavaSparkContext sc = new JavaSparkContext(conf)) {
-            JavaRDD<String> textFile = sc.textFile("./input.txt");
+        SparkConf conf = new SparkConf()
+                .setAppName("Example of spark docker application.")
+                .setMaster(sparkMasterUrl);
 
-            JavaPairRDD<String, Integer> counts = textFile
-                    .flatMap(s -> Arrays.asList(s.split("\\s")).iterator())
-                    .mapToPair(word -> new Tuple2<>(word, 1))
-                    .reduceByKey(Integer::sum);
-
-            counts.saveAsTextFile("./output.txt");
-        }*/
+        try (JavaSparkContext sparkContext = new JavaSparkContext(conf)) {
+            // Write your code for execution here.
+        }
     }
 }

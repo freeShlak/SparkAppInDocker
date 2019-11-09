@@ -1,5 +1,7 @@
 plugins {
     id 'java'
+    id 'application'
+    id 'com.bmuschko.docker-remote-api' version "5.3.0"
 }
 
 group 'tsibenko'
@@ -13,5 +15,118 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
-    compile group: 'org.apache.spark', name: 'spark-core_2.12', version: '2.4.4'
+    compile group: 'org.apache.spark', name: 'spark-core_2.11', version: '2.4.3'
 }
+
+/*================================Creating-Executable-JAR=============================*/
+
+def mainClass = 'Main'
+
+// Building executable jar
+application {
+    mainClassName = mainClass
+}
+jar {
+    manifest {
+        attributes 'Main-Class': mainClass
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+/*================================Creating-Docker-Container=============================*/
+
+// Using plugin to setup docker container with application
+import com.bmuschko.gradle.docker.tasks.image.*
+import com.bmuschko.gradle.docker.tasks.container.*
+
+// Directory with template files for building docker container
+def dockerBuildDir = 'build/docker/'
+
+def uniqueContainerName = 'spark-labs'
+def imageName = 'tsibenko/spark-labs'
+def imageVersion = '1.0-SNAPSHOT'
+
+// Master-node information
+def masterName = 'spark-master'
+def masterPort = '7077'
+
+def outerJarName = jar.getArchiveFileName().get()
+def innerJarName = 'spark-labs.jar'
+def innerAppDirectory = '/app'
+
+// Creating DockerFile
+task createDockerfile(type: Dockerfile) {
+    destFile.set(project.file("$dockerBuildDir/Dockerfile"))
+    from 'bde2020/spark-submit:2.4.4-hadoop2.7'
+
+    runCommand("mkdir -p $innerAppDirectory")
+    copyFile(outerJarName, "$innerAppDirectory/$innerJarName")
+
+    environmentVariable("ENABLE_INIT_DAEMON", "false")
+    environmentVariable("SPARK_APPLICATION_JAR_NAME", innerJarName.replace(".jar", ""))
+    environmentVariable("SPARK_APPLICATION_JAR_LOCATION", "$innerAppDirectory/$innerJarName")
+    environmentVariable("SPARK_APPLICATION_MAIN_CLASS", mainClass)
+    environmentVariable("SPARK_MASTER_NAME", masterName)
+    environmentVariable("SPARK_MASTER_PORT", masterPort)
+
+    workingDir(innerAppDirectory)
+    defaultCommand '/bin/bash', "/submit.sh"
+}
+
+// Copying created JAR file to tmp directory
+task syncJar(type: Copy) {
+    dependsOn assemble
+    from jar.getArchiveFile()
+    into dockerBuildDir
+}
+
+task stopContainer(type: DockerStopContainer) {
+    targetContainerId("$uniqueContainerName")
+    onError { exc ->
+        if (exc.message!=null && !exc.message.contains('No such container')) {
+            throw new RuntimeException(exc)
+        }
+    }
+}
+
+task removeContainer(type: DockerRemoveContainer) {
+    dependsOn stopContainer
+    targetContainerId("$uniqueContainerName")
+    onError { exc ->
+        if (exc.message!=null && !exc.message.contains('No such container')) {
+            throw new RuntimeException(exc)
+        }
+    }
+}
+
+task removeImage(type: DockerRemoveImage) {
+    dependsOn removeContainer
+    targetImageId("$imageName:$imageVersion")
+    onError { exc ->
+        if (exc.message!=null && !exc.message.contains('NotModifiedException')) {
+            throw new RuntimeException(exc)
+        }
+    }
+}
+
+task buildImage(type: DockerBuildImage) {
+    dependsOn createDockerfile, syncJar
+    inputDir.set(project.file(dockerBuildDir))
+    tags.set(["$imageName:$imageVersion"])
+}
+
+task createContainer(type: DockerCreateContainer) {
+    dependsOn buildImage, removeContainer
+    targetImageId buildImage.getImageId()
+    containerName.set(uniqueContainerName)
+    network.set("spark-labs_default")
+}
+
+task startContainer(type: DockerStartContainer) {
+    dependsOn createContainer
+    targetContainerId("$uniqueContainerName")
+}
+
+/*========================================The-end========================================*/
