@@ -58,12 +58,16 @@ def outerJarName = jar.getArchiveFileName().get()
 def innerJarName = 'spark-labs.jar'
 def innerAppDirectory = '/app'
 
+def rootDirect = rootDir.getAbsolutePath()
+
 // Creating DockerFile
 task createDockerfile(type: Dockerfile) {
     destFile.set(project.file("$dockerBuildDir/Dockerfile"))
     from 'bde2020/spark-submit:2.4.4-hadoop2.7'
 
     runCommand("mkdir -p $innerAppDirectory")
+    runCommand("mkdir -p $innerAppDirectory/input")
+    runCommand("mkdir -p $innerAppDirectory/output")
     copyFile(outerJarName, "$innerAppDirectory/$innerJarName")
 
     environmentVariable("ENABLE_INIT_DAEMON", "false")
@@ -124,6 +128,10 @@ task createContainer(type: DockerCreateContainer) {
     targetImageId buildImage.getImageId()
     containerName.set(uniqueContainerName)
     network.set("spark-labs_default")
+    binds = [
+            "$rootDirect/input":"$innerAppDirectory/input/",
+            "$rootDirect/output":"$innerAppDirectory/output/"
+    ]
 }
 
 task startContainer(type: DockerStartContainer) {
