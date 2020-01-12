@@ -86,7 +86,7 @@ task stopContainer(type: DockerStopContainer) {
     targetContainerId("$uniqueContainerName")
     onError { exc ->
         if (exc.message!=null && !exc.message.contains('No such container')) {
-            throw new RuntimeException(exc)
+            throw new TaskExecutionException(stopContainer, exc)
         }
     }
 }
@@ -96,7 +96,7 @@ task removeContainer(type: DockerRemoveContainer) {
     targetContainerId("$uniqueContainerName")
     onError { exc ->
         if (exc.message!=null && !exc.message.contains('No such container')) {
-            throw new RuntimeException(exc)
+            throw new TaskExecutionException(removeContainer, exc)
         }
     }
 }
@@ -106,7 +106,7 @@ task removeImage(type: DockerRemoveImage) {
     targetImageId("$imageName:$imageVersion")
     onError { exc ->
         if (exc.message!=null && !exc.message.contains('NotModifiedException')) {
-            throw new RuntimeException(exc)
+            throw new TaskExecutionException(removeImage, exc)
         }
     }
 }
