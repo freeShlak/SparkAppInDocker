@@ -33,6 +33,8 @@ jar {
     from {
         configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
     }
+
+    zip64(true)
 }
 
 /*================================Creating-Docker-Container=============================*/
