@@ -68,6 +68,8 @@ def outerJarName = jar.getArchiveFileName().get()
 def innerJarName = 'spark-labs.jar'
 def innerAppDirectory = '/app'
 
+def dictionaryName = "emo_dict.csv"
+
 def rootDirect = rootDir.getAbsolutePath()
 
 // Creating DockerFile
@@ -79,6 +81,7 @@ task createDockerfile(type: Dockerfile) {
     runCommand("mkdir -p $innerAppDirectory/input")
     runCommand("mkdir -p $innerAppDirectory/output")
     copyFile(outerJarName, "$innerAppDirectory/$innerJarName")
+    copyFile(dictionaryName, "$innerAppDirectory/$dictionaryName")
 
     environmentVariable("ENABLE_INIT_DAEMON", "false")
     environmentVariable("SPARK_APPLICATION_JAR_NAME", innerJarName.replace(".jar", ""))
@@ -95,6 +98,12 @@ task createDockerfile(type: Dockerfile) {
 task syncJar(type: Copy) {
     dependsOn assemble
     from jar.getArchiveFile()
+    into dockerBuildDir
+}
+
+task syncDictionary(type: Copy) {
+    dependsOn assemble
+    from "$rootDirect/$dictionaryName"
     into dockerBuildDir
 }
 
@@ -128,7 +137,7 @@ task removeImage(type: DockerRemoveImage) {
 }
 
 task buildImage(type: DockerBuildImage) {
-    dependsOn createDockerfile, syncJar
+    dependsOn createDockerfile, syncJar, syncDictionary
     inputDir.set(project.file(dockerBuildDir))
     images.set(["$imageName:$imageVersion"])
 }
