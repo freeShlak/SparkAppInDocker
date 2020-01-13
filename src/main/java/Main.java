@@ -1,6 +1,13 @@
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.DoubleType;
+import org.apache.spark.sql.types.StringType;
+import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
 import java.io.File;
@@ -18,6 +25,21 @@ public class Main {
         SparkConf conf = new SparkConf()
                 .setAppName(appName)
                 .setMaster(sparkMasterUrl);
+
+        // Unchecked configuration
+        StructType schema = new StructType()
+                .add("term", StringType.productPrefix(), false)
+                .add("value", DoubleType.productPrefix(), false);
+
+        SparkSession session = SparkSession.builder().config(conf).getOrCreate();
+        SQLContext sqlContext = new SQLContext(session);
+        Dataset<Row> dataset = sqlContext.read()
+                .format("csv")
+                .option("delimiter", ";")
+                .option("header", "true")
+                .schema(schema)
+                .load("./emo_dict.csv");
+
 
         try (JavaSparkContext sparkContext = new JavaSparkContext(conf)) {
             File inputDir = new File("/app/input");
@@ -44,9 +66,13 @@ public class Main {
                         .collect(Collectors.toList());
 
                 sparkContext.parallelize(firstForms)
+                        .filter((s) -> s.length() > 3)
                         .mapToPair((s) -> new Tuple2<>(s, 1))
                         .reduceByKey(Integer::sum)
-                        .collectAsMap().forEach((key, value) -> System.out.println(key + " : " + value));
+                        // Unchecked mapping
+                        .mapToPair((pair) -> new Tuple2<>(pair._1, Double.parseDouble(
+                                dataset.select("value")
+                                        .where("term = " + pair._1).toString()) * pair._2));
             }
         }
     }
