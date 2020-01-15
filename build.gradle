@@ -35,8 +35,14 @@ application {
 }
 jar {
     manifest {
-        attributes 'Main-Class': mainClass
+        attributes "Main-Class": mainClass
     }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
 }
 
 /*================================Creating-Docker-Container=============================*/
