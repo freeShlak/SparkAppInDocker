@@ -87,6 +87,7 @@ task createDockerfile(type: Dockerfile) {
     environmentVariable("SPARK_APPLICATION_MAIN_CLASS", mainClass)
     environmentVariable("SPARK_MASTER_NAME", masterName)
     environmentVariable("SPARK_MASTER_PORT", masterPort)
+    environmentVariable("SPARK_SUBMIT_ARGS", "--conf spark.executor.extraJavaOptions=-Dfile.encoding=UTF-8")
 
     workingDir(innerAppDirectory)
     defaultCommand '/bin/bash', "/submit.sh"
