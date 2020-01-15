@@ -1,7 +1,7 @@
 version: '3'
 services:
   spark-master:
-    image: bde2020/spark-master:2.4.4-hadoop2.7
+    image: bde2020/spark-master:2.4.0-hadoop2.8-scala2.12
     container_name: spark-master
     ports:
       - "8080:8080"
@@ -11,7 +11,7 @@ services:
       - "constraint:node==spark-master"
 
   spark-worker:
-    image: bde2020/spark-worker:2.4.4-hadoop2.7
+    image: bde2020/spark-worker:2.4.0-hadoop2.8-scala2.12
     container_name: spark-worker
     depends_on:
       - spark-master

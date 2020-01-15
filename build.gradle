@@ -22,8 +22,7 @@ wrapper {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
-    //compile group: 'org.apache.spark', name: 'spark-core_2.12', version: '2.4.4'
-    compile group: 'org.apache.spark', name: 'spark-sql_2.12', version: '2.4.4'
+    compile group: 'org.apache.spark', name: 'spark-sql_2.12', version: '2.4.0'
 
     compile group: 'org.apache.lucene.morphology', name: 'russian', version: '1.1'
 }
@@ -40,11 +39,6 @@ jar {
     manifest {
         attributes 'Main-Class': mainClass
     }
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-
-    zip64(true)
 }
 
 /*================================Creating-Docker-Container=============================*/
@@ -75,7 +69,7 @@ def rootDirect = rootDir.getAbsolutePath()
 // Creating DockerFile
 task createDockerfile(type: Dockerfile) {
     destFile.set(project.file("$dockerBuildDir/Dockerfile"))
-    from 'bde2020/spark-submit:2.4.4-hadoop2.7'
+    from 'bde2020/spark-submit:2.4.0-hadoop2.8-scala2.12'
 
     runCommand("mkdir -p $innerAppDirectory")
     runCommand("mkdir -p $innerAppDirectory/input")
