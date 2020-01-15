@@ -5,9 +5,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.DoubleType;
-import org.apache.spark.sql.types.StringType;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.*;
 import scala.Tuple2;
 
 import java.io.File;
@@ -27,9 +25,10 @@ public class Main {
                 .setMaster(sparkMasterUrl);
 
         // Unchecked configuration
-        StructType schema = new StructType()
-                .add("term", StringType.productPrefix(), false)
-                .add("value", DoubleType.productPrefix(), false);
+        StructType schema = new StructType(new StructField[]{
+                new StructField("term", DataTypes.StringType, true, Metadata.empty()),
+                new StructField("value", DataTypes.DoubleType, true, Metadata.empty())
+        });
 
         SparkSession session = SparkSession.builder().config(conf).getOrCreate();
         SQLContext sqlContext = new SQLContext(session);
@@ -72,7 +71,7 @@ public class Main {
                         // Unchecked mapping
                         .mapToPair((pair) -> new Tuple2<>(pair._1, Double.parseDouble(
                                 dataset.select("value")
-                                        .where("term = " + pair._1).toString()) * pair._2));
+                                        .where("term = " + pair._1).toString()) * pair._2));*/
             }
         }
     }
