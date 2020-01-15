@@ -30,12 +30,11 @@ public class FileManager {
         }
     }
 
-    //TODO: написать нормальную реализацию
-    public static void writeOutputFile(String fileName, StringBuffer buffer) throws IOException {
-        File out = new File(fileName);
+    public void writeOutputFile(String fileName, StringBuilder builder) throws IOException {
+        File out = new File(Properties.outputDirectory + "/" + fileName);
         if (out.createNewFile()) {
             try (FileWriter writer = new FileWriter(out)) {
-                writer.write(buffer.toString());
+                writer.write(builder.toString());
             }
         }
     }

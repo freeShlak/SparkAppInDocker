@@ -2,10 +2,10 @@ import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparkSession;
+import scala.Tuple2;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -33,6 +33,36 @@ public class Main {
                     .collect().parallelStream()
                     .map((s) -> morphology.getNormalForms(s).get(0))
                     .collect(Collectors.toList());
+
+            Map<String, Long> counts = javaContext.parallelize(firstForms)
+                    .mapToPair((s) -> new Tuple2<>(s, 1L))
+                    .reduceByKey(Long::sum)
+                    .mapToPair((p) -> new Tuple2<>(p._2, p._1))
+                    .sortByKey()
+                    .mapToPair((p) -> new Tuple2<>(p._2, p._1))
+                    .collectAsMap();
+
+            Map<Long, String> order = javaContext.parallelize(firstForms)
+                    .zipWithIndex()
+                    .mapToPair((p) -> new Tuple2<>(p._2, p._1))
+                    .sortByKey()
+                    .collectAsMap();
+
+            Map<String, Double> rates = counts.entrySet().parallelStream()
+                    .map((ent) -> new AbstractMap.SimpleEntry<>(ent.getKey(), dictionary.getRate(ent.getKey())))
+                    .filter((ent) -> ent.getValue().isPresent())
+                    .map((ent) -> new  AbstractMap.SimpleEntry<>(ent.getKey(), ent.getValue().get()))
+                    .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+
+            Map<Long, Double> data = order.entrySet().parallelStream()
+                    .map((ent) -> new AbstractMap.SimpleEntry<>(ent.getKey(), rates.get(ent.getValue())))
+                    .filter((ent) -> ent.getValue() != null)
+                    .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+
+            StringBuilder buffer = new StringBuilder();
+            data.forEach((k, v) -> buffer.append(k).append(";").append(v).append("\n"));
+
+            fileManager.writeOutputFile(file.getName(), buffer);
         }
     }
 }
