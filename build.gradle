@@ -78,6 +78,7 @@ task createDockerfile(type: Dockerfile) {
     runCommand("mkdir -p $innerAppDirectory")
     runCommand("mkdir -p $innerAppDirectory/input")
     runCommand("mkdir -p $innerAppDirectory/output")
+
     copyFile(outerJarName, "$innerAppDirectory/$innerJarName")
     copyFile(dictionaryName, "$innerAppDirectory/$dictionaryName")
 
@@ -88,6 +89,8 @@ task createDockerfile(type: Dockerfile) {
     environmentVariable("SPARK_MASTER_NAME", masterName)
     environmentVariable("SPARK_MASTER_PORT", masterPort)
     environmentVariable("SPARK_SUBMIT_ARGS", "--conf spark.executor.extraJavaOptions=-Dfile.encoding=UTF-8")
+
+    environmentVariable("DICTIONARY_NAME", dictionaryName)
 
     workingDir(innerAppDirectory)
     defaultCommand '/bin/bash', "/submit.sh"
