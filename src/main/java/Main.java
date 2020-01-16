@@ -59,7 +59,18 @@ public class Main {
                     .filter((ent) -> ent.getValue() != null)
                     .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
 
+            double average = rates.entrySet().parallelStream()
+                    .map((ent) -> new AbstractMap.SimpleEntry<>(ent.getValue(), counts.get(ent.getKey())))
+                    .map((ent) -> new AbstractMap.SimpleEntry<>(ent.getKey() * ent.getValue(), ent.getValue()))
+                    .reduce((ent1, ent2) -> new AbstractMap.SimpleEntry<>(
+                            ent1.getKey() + ent2.getKey(),
+                            ent1.getValue() + ent2.getValue()))
+                    .map((ent) -> ent.getKey() / ent.getValue())
+                    .get();
+
             StringBuilder buffer = new StringBuilder();
+            buffer.append("Average tonality: ").append(average).append("\n\n");
+            buffer.append("All tonalities: ").append("\n");
             data.forEach((k, v) -> buffer.append(k).append(";").append(v).append("\n"));
 
             fileManager.writeOutputFile(fileInformation, buffer);
