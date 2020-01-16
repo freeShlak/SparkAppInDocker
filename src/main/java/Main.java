@@ -24,10 +24,10 @@ public class Main {
         RussianLuceneMorphology morphology = new RussianLuceneMorphology();
 
         for (File file : fileManager.getInputFiles()) {
-            List<String> content = fileManager.readLines(file);
+            FileInformation fileInformation = fileManager.readLines(file);
 
-            List<String> firstForms = javaContext.parallelize(content)
-                    .flatMap((s) -> Arrays.asList(s.split("\\s")).iterator())
+            List<String> firstForms = javaContext.parallelize(fileInformation.getContent())
+                    .flatMap((s) -> Arrays.asList(s.split("\\s+")).iterator())
                     .map((s) -> s.toLowerCase().replaceAll("[^а-яё]", ""))
                     .filter((s) -> s.length() > 0)
                     .collect().parallelStream()
@@ -62,7 +62,7 @@ public class Main {
             StringBuilder buffer = new StringBuilder();
             data.forEach((k, v) -> buffer.append(k).append(";").append(v).append("\n"));
 
-            fileManager.writeOutputFile(file.getName(), buffer);
+            fileManager.writeOutputFile(fileInformation, buffer);
         }
     }
 }

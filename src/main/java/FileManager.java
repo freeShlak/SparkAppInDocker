@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,11 +31,23 @@ public class FileManager {
         }
     }
 
-    public void writeOutputFile(String fileName, StringBuilder builder) throws IOException {
-        File out = new File(Properties.outputDirectory + "/" + fileName);
+    public void writeOutputFile(FileInformation fileInformation, StringBuilder contentBuilder) throws IOException {
+        File out = new File(Properties.outputDirectory + "/" + fileInformation.getFile().getName());
+
+        if(out.exists()) {
+            if (!out.delete()) {
+                throw new IOException("Can't delete old output file.");
+            }
+        }
+
         if (out.createNewFile()) {
             try (FileWriter writer = new FileWriter(out)) {
-                writer.write(builder.toString());
+                StringBuilder headersBuilder = new StringBuilder();
+                fileInformation.getHeaders().forEach((s) -> headersBuilder.append(s).append("\n"));
+                headersBuilder.append("\n");
+
+                writer.write(headersBuilder.toString());
+                writer.write(contentBuilder.toString());
             }
         }
     }
@@ -43,9 +56,17 @@ public class FileManager {
         return inputFiles;
     }
 
-    public List<String> readLines(File file) {
+    public FileInformation readLines(File file) {
         try {
-            return Files.lines(file.toPath()).collect(Collectors.toList());
+            List<String> headers = new LinkedList<>();
+            List<String> content = Files.lines(file.toPath()).collect(Collectors.toList());
+            int i = 0;
+            do {
+                headers.add(content.get(i));
+            }  while (i < content.size() && !content.get(i++).matches("^-{5,}$"));
+            content.removeAll(headers);
+
+            return new FileInformation(file, headers, content);
         } catch (IOException e) {
             throw new IllegalStateException("Incorrect file: " + file.getName());
         }
